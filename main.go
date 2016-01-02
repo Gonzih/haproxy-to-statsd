@@ -72,6 +72,8 @@ func RegexpSubmatchesToMap(re *regexp.Regexp, input string) map[string]string {
 func Follow(filePath string, channel chan string) {
 	fmt.Println("Monitoring", filePath)
 
+	skip := true
+
 	file, err := os.Open(filePath)
 
 	defer file.Close()
@@ -84,9 +86,15 @@ func Follow(filePath string, channel chan string) {
 		part, _, err := reader.ReadLine()
 
 		if err != io.EOF {
-			channel <- string(part)
+			if !skip {
+				channel <- string(part)
+			}
 		} else {
-			time.Sleep(10 * time.Millisecond)
+			if !skip {
+				time.Sleep(10 * time.Millisecond)
+			} else {
+				skip = false
+			}
 		}
 	}
 

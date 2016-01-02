@@ -87,7 +87,7 @@ func Follow(filePath string, channel chan string) {
 }
 
 func Process(channel chan string) {
-	payload := <-channel
+	// payload := <-channel
 }
 
 func main() {

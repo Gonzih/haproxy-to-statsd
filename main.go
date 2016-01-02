@@ -100,4 +100,9 @@ func main() {
 	}
 
 	fmt.Println(RegexpSubmatchesToMap(haProxyLogRe, sampleString))
+
+	if len(flag.Args()) > 0 {
+		done := make(chan bool)
+		<-done
+	}
 }

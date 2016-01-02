@@ -35,7 +35,8 @@ var (
 		`(?P<actConn>\d+)\/(?P<feConn>\d+)\/(?P<beConn>\d+)\/(?P<srvConn>\d+)\/(?P<retries>\+?\d) ` +
 		`(?P<srvQueue>\d+)\/(?P<backendQueue>\d+) ` +
 		`(?P<headers>\{.*\} *)*` +
-		`"(?P<request>(?P<requestMethod>[^ ]+) (?P<requestPath>.*)(?: HTTP\/[0-9\.]+))"?` +
+		// this line breaks example
+		// `"(?P<request>(?P<requestMethod>[^ ]+) (?P<requestPath>.*)(?: HTTP\/[0-9\.]+))"?` +
 		`|` +
 		`(?P<error>[a-zA-Z0-9: ]+)` +
 		`)`,
@@ -86,13 +87,42 @@ func Follow(filePath string, channel chan string) {
 
 }
 
-func MapToEntry(data map[string]string) {
+type Entry struct {
+	key  string
+	time string
+}
+
+func MapToEntry(data map[string]string) Entry {
+	hostname, _ := os.Hostname()
+	key := fmt.Sprintf("haproxy.%s.%s", hostname, data["server"])
+	time := data["tt"]
+
+	return Entry{
+		key:  key,
+		time: time}
+}
+
+func EntryToStatsdStrings(entry Entry) (results [2]string) {
+	// haproxy.er-web1.backend:30|ms|@0.1
+	// haproxy.er-web1.backend:1|c|@0.1
+	// haproxy.er-web1.backend:30|ms
+	// haproxy.er-web1.backend:1|c
+
+	results[0] = fmt.Sprintf("%s:%s|ms", entry.key, entry.time)
+	results[1] = fmt.Sprintf("%s:1|c", entry.key)
+
+	return
 }
 
 func Process(channel chan string) {
 	payload := <-channel
 	data := RegexpSubmatchesToMap(haProxyLogRe, payload)
-	MapToEntry(data)
+	entry := MapToEntry(data)
+	dataStrings := EntryToStatsdStrings(entry)
+
+	for _, dataString := range dataStrings {
+		fmt.Println(dataString)
+	}
 }
 
 func main() {
@@ -103,8 +133,6 @@ func main() {
 		go Follow(filePath, followChannel)
 		go Process(followChannel)
 	}
-
-	fmt.Println(RegexpSubmatchesToMap(haProxyLogRe, sampleString))
 
 	if len(flag.Args()) > 0 {
 		done := make(chan bool)

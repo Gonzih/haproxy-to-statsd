@@ -70,7 +70,7 @@ func RegexpSubmatchesToMap(re *regexp.Regexp, input string) map[string]string {
 }
 
 func Follow(filePath string, channel chan string) {
-	fmt.Println("Monitoring", filePath)
+	fmt.Println("Following", filePath)
 
 	skip := true
 

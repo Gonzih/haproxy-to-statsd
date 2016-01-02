@@ -5,7 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"log"
+	"net"
 	"os"
 	"regexp"
 	"time"
@@ -14,6 +14,12 @@ import (
 const (
 	haProxyTsLayout = "2/Jan/2006:15:04:05.000"
 )
+
+func CheckErr(err error) {
+	if err != nil {
+		panic(err)
+	}
+}
 
 var (
 	// NB: See section 8.2.3 of http://haproxy.1wt.eu/download/1.5/doc/configuration.txt to see HAProxy log format details.
@@ -49,6 +55,7 @@ func RegexpSubmatchesToMap(re *regexp.Regexp, input string) map[string]string {
 	submatches := re.FindStringSubmatch(input)
 
 	if submatches == nil {
+		fmt.Fprintf(os.Stderr, "Error while parsing payload: \"%s\"\n", input)
 		return nil
 	}
 
@@ -69,9 +76,7 @@ func Follow(filePath string, channel chan string) {
 
 	defer file.Close()
 
-	if err != nil {
-		log.Fatal(err)
-	}
+	CheckErr(err)
 
 	reader := bufio.NewReader(file)
 
@@ -115,13 +120,30 @@ func EntryToStatsdStrings(entry Entry) (results [2]string) {
 }
 
 func Process(channel chan string) {
-	payload := <-channel
-	data := RegexpSubmatchesToMap(haProxyLogRe, payload)
-	entry := MapToEntry(data)
-	dataStrings := EntryToStatsdStrings(entry)
+	localAddr, err := net.ResolveUDPAddr("udp", "localhost:0")
+	CheckErr(err)
 
-	for _, dataString := range dataStrings {
-		fmt.Println(dataString)
+	remoteAddr, err := net.ResolveUDPAddr("udp", "localhost:8125")
+	CheckErr(err)
+
+	conn, err := net.DialUDP("udp", localAddr, remoteAddr)
+	CheckErr(err)
+
+	defer conn.Close()
+
+	for {
+		payload := <-channel
+		data := RegexpSubmatchesToMap(haProxyLogRe, payload)
+
+		if data != nil {
+			entry := MapToEntry(data)
+			dataStrings := EntryToStatsdStrings(entry)
+
+			for _, dataString := range dataStrings {
+				buf := []byte(dataString)
+				conn.Write(buf)
+			}
+		}
 	}
 }
 

@@ -72,8 +72,6 @@ func RegexpSubmatchesToMap(re *regexp.Regexp, input string) map[string]string {
 func Follow(filePath string, channel chan string) {
 	fmt.Println("Following", filePath)
 
-	skip := true
-
 	file, err := os.Open(filePath)
 
 	defer file.Close()
@@ -83,18 +81,18 @@ func Follow(filePath string, channel chan string) {
 	reader := bufio.NewReader(file)
 
 	for {
+		if _, _, err = reader.ReadLine(); err == io.EOF {
+			break
+		}
+	}
+
+	for {
 		part, _, err := reader.ReadLine()
 
 		if err != io.EOF {
-			if !skip {
-				channel <- string(part)
-			}
+			channel <- string(part)
 		} else {
-			if !skip {
-				time.Sleep(10 * time.Millisecond)
-			} else {
-				skip = false
-			}
+			time.Sleep(10 * time.Millisecond)
 		}
 	}
 

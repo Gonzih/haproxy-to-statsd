@@ -105,7 +105,7 @@ type Entry struct {
 
 func MapToEntry(data map[string]string) Entry {
 	hostname, _ := os.Hostname()
-	key := fmt.Sprintf("haproxy.%s.%s", hostname, data["server"])
+	key := fmt.Sprintf("haproxy.%s.%s.%s", hostname, data["backend"], data["server"])
 	time := data["tt"]
 
 	return Entry{
@@ -126,13 +126,7 @@ func EntryToStatsdStrings(entry Entry) (results [2]string) {
 }
 
 func Process(channel chan string) {
-	localAddr, err := net.ResolveUDPAddr("udp", "localhost:0")
-	CheckErr(err)
-
-	remoteAddr, err := net.ResolveUDPAddr("udp", "localhost:8125")
-	CheckErr(err)
-
-	conn, err := net.DialUDP("udp", localAddr, remoteAddr)
+	conn, err := net.Dial("udp", "localhost:8125")
 	CheckErr(err)
 
 	defer conn.Close()
@@ -148,6 +142,7 @@ func Process(channel chan string) {
 			for _, dataString := range dataStrings {
 				buf := []byte(dataString)
 				conn.Write(buf)
+				// fmt.Println(dataString)
 			}
 		}
 	}

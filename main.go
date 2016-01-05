@@ -125,8 +125,8 @@ func EntryToStatsdStrings(entry Entry) (results [2]string) {
 	return
 }
 
-func Process(channel chan string) {
-	conn, err := net.Dial("udp", "localhost:8125")
+func Process(channel chan string, host *string, port *int) {
+	conn, err := net.Dial("udp", fmt.Sprintf("%s:%d", *host, *port))
 	CheckErr(err)
 
 	defer conn.Close()
@@ -149,12 +149,15 @@ func Process(channel chan string) {
 }
 
 func main() {
+	var host = flag.String("host", "localhost", "StatsD host to use")
+	var port = flag.Int("port", 8125, "StatsD port to use")
+
 	flag.Parse()
 
 	for _, filePath := range flag.Args() {
 		followChannel := make(chan string, 100)
 		go Follow(filePath, followChannel)
-		go Process(followChannel)
+		go Process(followChannel, host, port)
 	}
 
 	if len(flag.Args()) > 0 {

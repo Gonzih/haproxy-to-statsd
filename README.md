@@ -3,5 +3,5 @@
 ## Usage
 
 ```bash
-go run main.go /var/log/haproxy-main.log
+go run main.go -host statsd.host -port 8125 /var/log/haproxy-main.log
 ```

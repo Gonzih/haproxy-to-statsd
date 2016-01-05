@@ -73,6 +73,7 @@ func Follow(filePath string, channel chan string) {
 	fmt.Println("Following", filePath)
 
 	file, err := os.Open(filePath)
+	fmt.Println(file.Stat())
 
 	defer file.Close()
 
@@ -154,14 +155,16 @@ func main() {
 
 	flag.Parse()
 
+	if len(flag.Args()) == 0 {
+		panic("Please provide files to follow")
+	}
+
 	for _, filePath := range flag.Args() {
 		followChannel := make(chan string, 100)
 		go Follow(filePath, followChannel)
 		go Process(followChannel, host, port)
 	}
 
-	if len(flag.Args()) > 0 {
-		done := make(chan bool)
-		<-done
-	}
+	done := make(chan bool)
+	<-done
 }

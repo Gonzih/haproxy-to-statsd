@@ -73,7 +73,6 @@ func Follow(filePath string, channel chan string) {
 	fmt.Println("Following", filePath)
 
 	file, err := os.Open(filePath)
-	fmt.Println(file.Stat())
 
 	defer file.Close()
 

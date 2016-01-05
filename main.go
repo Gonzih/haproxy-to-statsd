@@ -160,7 +160,7 @@ func main() {
 	}
 
 	for _, filePath := range flag.Args() {
-		followChannel := make(chan string, 100)
+		followChannel := make(chan string)
 		go Follow(filePath, followChannel)
 		go Process(followChannel, host, port)
 	}
